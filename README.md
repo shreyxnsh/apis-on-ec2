@@ -152,3 +152,7 @@ Stop the server
 ```bash
   pm2 stop 0
 ```
+
+## License
+
+
