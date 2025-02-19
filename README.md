@@ -153,6 +153,101 @@ Stop the server
   pm2 stop 0
 ```
 
-## License
+
+# Get SSL Certificate for https protocol
+Run these commands and change the nginx server configuration to accept 443 ssl requests.
+
+
+Update and install certbot
+```bash
+sudo apt update
+sudo apt install certbot python3-certbot-nginx -y
+
+```
+Run the certbot
+```bash
+sudo certbot --nginx -d testapi.com
+```
+Nano server configuration
+```bash
+sudo nano /etc/nginx/sites-enabled/testapi.com
+```
+
+Update Server configuration 
+```bash
+  
+server {
+    listen 443 ssl;
+    server_name testapi.com;
+
+    ssl_certificate /etc/letsencrypt/live/testapi.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/testapi.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_read_timeout 60;
+        proxy_connect_timeout 60;
+        proxy_redirect off;
+
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+
+server {
+    listen 80;
+    server_name testapi.com;
+    return 301 https://$host$request_uri;
+}
+```
+Check Server
+```bash
+sudo nginx -t
+```
+Restart nginx
+```bash
+sudo systemctl restart nginx
+```
+Auto renew certificate after 90 days
+```bash
+sudo certbot renew --dry-run
+```
+The above commands will allow https request and route http to https in browser but if you want to accept http requests then update the server configuration to this 
+```bash
+server {
+    listen 80;
+    server_name testapi.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name testapi.com;
+
+    ssl_certificate /etc/letsencrypt/live/testapi.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/testapi.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+```
+
+
 
 
